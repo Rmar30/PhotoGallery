@@ -15,7 +15,8 @@ import {
   View, 
   TouchableOpacity,
   Button,
-  Image
+  Image,
+  CameraRoll,
 } from 'react-native';
 
 // Camera Import
@@ -23,16 +24,13 @@ import { RNCamera } from 'react-native-camera';
 // Navigator Import
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 
-
 class HomeScreen extends React.Component {
-
 
   //Style Home Navigation at Top
   static navigationOptions = {
     title: 'Home',
   };
   
-
   render() {
 
     const { navigation } = this.props;
@@ -53,7 +51,6 @@ class HomeScreen extends React.Component {
           style={{width: 300, height: 300}}
           source={{uri: dataURI}}
         />
-
       </View>
     );
   }
@@ -71,6 +68,7 @@ class CameraScreen extends React.Component {
       const options = { quality: 0.5, base64: true, fixOrientation: true};
       const data = await this.camera.takePictureAsync(options);
       console.log(data.uri);
+      CameraRoll.saveToCameraRoll(data.uri)
       this.props.navigation.navigate('Home', {
         dataURI: data.uri
       });
