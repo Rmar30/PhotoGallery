@@ -7,29 +7,40 @@
  * @lint-ignore-every XPLATJSCOPYRIGHT1
  */
 
-import React, {Component} from 'react';
+import React from 'react';
 import {
-  Platform, 
   StyleSheet, 
   Text, 
   View, 
   TouchableOpacity,
   Button,
   Image,
-  CameraRoll,
+  TextInput,
+  Alert,
 } from 'react-native';
 
 // Import Storage Settings
 import { dirPictures } from './dirStorageSetting';
 
+// Custom Components
+
+// Import Persistance Storage
+import realm from './realm';
+
+
+// Image Grid Layout Component
+import PhotoGrid from 'react-native-image-grid';
+
 // Camera Import
 import { RNCamera } from 'react-native-camera';
+
 // Navigator Import
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 
+
 const moment = require('moment');
 const RNFS = require('react-native-fs');
-
+const uuidv1 = require('uuid/v1');
 
 
 const moveAttachment = async (filePath, newFilepath) => {
@@ -57,40 +68,87 @@ const moveAttachment = async (filePath, newFilepath) => {
 
 class HomeScreen extends React.Component {
 
-  //Style Home Navigation at Top
   static navigationOptions = {
     title: 'Home',
   };
+
+  constructor() {
+    super();
+    this.state = { items: [] };
+  }
+ 
+  componentDidMount() {
+
+    let photos = realm.objects('Photo');
+
+    let items = Array.apply(null, photos).map((v, i) => {
+
+      // Modify Path to Support Src Uri
+      return {
+        id: v.id,
+        name: v.name,
+        src: 'file://' + v.path,
+        date: v.date,
+        location: v.location,
+        comment: v.comment,
+      };
+    });
+    this.setState({ items }); 
+
+
+    // // get a list of files and directories in the main bundle
+    // RNFS.readDir(dirPictures)
+    // .then((result) => {
+    //   console.log('RESULT', result);
+
+    //   let photos = realm.objects('Photo');
+
+    //   let items = Array.apply(null, result).map((v, i) => {
+        
+    //     // Modify Path to Support Src Uri
+    //     return { id: i, photoName: v.name, src: 'file://' + v.path};
+    //   });
+    //   this.setState({ items });      
+    // })
+    // .catch((err) => {
+    //   console.log(err.message, err.code);
+    // });
+  }
+
+
+  renderItem(item, itemSize, itemPaddingHorizontal) {
+    
+    //Single item of Grid
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={{
+          width: itemSize,
+          height: itemSize,
+          paddingHorizontal: itemPaddingHorizontal,
+        }}
+        onPress={() => {
+          /* 1. Navigate to the Image View route */
+          this.props.navigation.navigate('ImageView', {
+            photoID: item.id,
+            photoName: item.name,
+            photoPath: item.src,
+            photoDate: item.date,
+            photoLocation: item.location,
+            photoComment: item.comment,
+          });
+        }}>
+        <Image
+          resizeMode="cover"
+          style={{ flex: 1 }}
+          source={{ uri: item.src }}
+        />
+      </TouchableOpacity>
+    );
+  }
   
   render() {
-
-    const { navigation } = this.props;
-    const dataURI = navigation.getParam('dataURI', 'No data');
-
-    // get a list of files and directories in the main bundle
-    RNFS.readDir(dirPictures)
-      .then((result) => {
-        console.log('GOT RESULT', result);
-
-        // stat the first file
-        return Promise.all([RNFS.stat(result[0].path), result[0].path]);
-      })
-      .then((statResult) => {
-        if (statResult[0].isFile()) {
-          // if we have a file, read it
-          return RNFS.readFile(statResult[1], 'utf8');
-        }
-
-        return 'no file';
-      })
-      .then((contents) => {
-        // log the file contents
-        console.log(contents);
-      })
-      .catch((err) => {
-        console.log(err.message, err.code);
-      });
-
+    
     return (
       <View style={styles.container}>
         <Text style={styles.title}>PHOTO GALLERY</Text>
@@ -101,11 +159,16 @@ class HomeScreen extends React.Component {
               this.props.navigation.navigate('Camera');
             }}
           />
-        {/* <Text>{JSON.stringify(dataURI)}</Text>
-        <Image
-          style={{width: 300, height: 300}}
-          source={{uri: dataURI}}
-        /> */}
+        <View style={styles.gridStyle}>
+        <PhotoGrid
+          data={this.state.items}
+          itemsPerRow={3}
+          //You can decide the item per row
+          itemMargin={1}
+          itemPaddingHorizontal={1}
+          renderItem={this.renderItem.bind(this)}
+        />
+        </View>
       </View>
     );
   }
@@ -118,7 +181,6 @@ class CameraScreen extends React.Component {
     title: 'Camera',
   };
 
-
   saveImage = async filePath => {
     try {
       // set new image name and filepath
@@ -127,7 +189,20 @@ class CameraScreen extends React.Component {
 
       // move and save image to new filepath
       const imageMoved = await moveAttachment(filePath, newFilepath);
-      console.log('image moved', imageMoved);
+
+      realm.write(() => {
+        realm.create(
+          'Photo',
+          {
+            id: uuidv1(),
+            name: newImageName,
+            path: newFilepath,
+            date: new Date(),
+          }
+        )
+      });
+
+      console.log('Image Moved', imageMoved);
     } catch (error) {
       console.log(error);
     }
@@ -139,6 +214,7 @@ class CameraScreen extends React.Component {
       const options = { quality: 0.5, base64: true, fixOrientation: true};
       const data = await this.camera.takePictureAsync(options);
       this.saveImage(data.uri);
+
       this.props.navigation.navigate('Home');
       // this.props.navigation.navigate('Home', {
       //   dataURI: data.uri
@@ -179,11 +255,145 @@ class CameraScreen extends React.Component {
   }
 }
 
+
+
+
+class ImageView extends React.Component {
+  
+  deletePhoto(key,path) {
+
+    let photo = realm.objectForPrimaryKey('Photo',key)
+
+    realm.write(() => {
+      realm.delete(photo);
+    })
+    
+    RNFS.unlink(path)
+    .then(() => {
+      console.log('FILE DELETED');
+    })
+    // `unlink` will throw an error, if the item to unlink does not exist
+    .catch((err) => {
+      console.log(err.message);
+    });
+
+  }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      text: 'Useless Multiline Placeholder',
+    };
+  }
+
+  static navigationOptions = {
+    title: 'Image View',
+  };
+
+  render() {
+
+
+    const { navigation } = this.props;
+    const photoID = navigation.getParam('photoID', '');
+    const photoPath = navigation.getParam('photoPath', '');
+    const photoName = navigation.getParam('photoName', '');
+    const photoDate = navigation.getParam('photoDate', '');
+    const photoLocation = navigation.getParam('photoLocation', '');
+    const photoComment = navigation.getParam('photoComment', '');
+
+    console.log(photoDate);
+
+
+    return (
+    <View>
+      <View style={styles.singleImageTitleBar}>
+        <Text style={styles.singleImageTitle}>{photoName}</Text>
+        <View style={styles.singleImageButtonControl}>
+          <Button
+            title="EDIT"
+           
+            // onPress={() => {
+            //   /* 1. Navigate to the Camera route */
+            //   this.props.navigation.navigate('Camera');
+            // }}
+          />
+        </View>
+        <View style={styles.singleImageButtonControl}>
+          <Button
+            title="DELETE"
+            color="#8b0000"
+            onPress={() => {
+              
+              Alert.alert(
+                'Delete Image',
+                'Are you sure you want to Delete this Image',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      this.deletePhoto(photoID,photoPath)
+                      this.props.navigation.navigate('Home');
+                    }
+                  },
+                  {
+                    text: 'Cancel',
+                    onPress: () => console.log('Cancel Pressed'),
+                    style: 'cancel',
+                  },
+                ],
+                {cancelable: false},
+              );
+            }}
+          />
+        </View>
+      </View>
+      <View style={styles.singleImageContainer}>
+        <Image
+          style={styles.singleImage}
+          source={{ uri: photoPath }}
+        />
+      </View>
+
+      <View style={styles.singleImageContent}>
+        <Text style = {styles.fieldDisplay}>DATE: {photoDate.toLocaleDateString()}</Text>
+        <Text style = {styles.fieldDisplay}>LOCATION: {photoLocation}</Text>
+        
+        <View style = {styles.fieldDisplay}>
+          <Text>COMMENTS:</Text>
+          <View style={{
+            backgroundColor: this.state.text,
+            borderColor: '#000000',
+            marginTop: 10,
+            borderWidth: 1 }}
+          >
+            <TextInput
+              editable = {false}
+              multiline = {true}
+              numberOfLines = {4}
+              style = {
+                {
+                  textAlignVertical: "top",
+                  color : "gray"
+                }
+              }
+              onChangeText={(text) => this.setState({text})}
+              value= "TEST"
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+
+    )
+  }
+}
+
 // DEFINING STACK
 const RootStack = createStackNavigator(
   {
     Home: HomeScreen,
     Camera: CameraScreen,
+    ImageView: ImageView,
   },
   {
     initialRouteName: 'Home',
@@ -236,10 +446,52 @@ const styles = StyleSheet.create({
     flex: 0,
     backgroundColor: "#fff",
     borderRadius: 5,
-    padding: 15,
+    padding: 8,
     paddingHorizontal: 20,
     alignSelf: "center",
     margin: 20
   },
+  gridStyle: {
+    justifyContent: 'center',
+    flex: 1,
+    marginTop: 20,
+  },
+
+
+
+  // IMAGE VIEW STYLES
+  singleImageTitleBar: {
+    flexWrap: 'wrap', 
+    alignItems: 'flex-start',
+    flexDirection:'row',
+    marginHorizontal: 20,
+    marginTop: 20,
+
+  },
+  singleImageButtonControl: {
+    width: '20%',
+    marginHorizontal: 3,
+  },
+  singleImage: {
+    justifyContent: 'center',
+    width: 300,
+    height: 300,
+    marginTop: 20,
+  },
+  singleImageContainer: {
+    alignItems: 'center',
+  },
+  singleImageTitle: {
+    fontSize: 20,
+    flex:1,
+  },
+  singleImageContent: {
+    textAlign: 'left',
+    marginHorizontal: 40,
+    marginTop: 12,
+  },
+  fieldDisplay: {
+    marginVertical: 8,
+  }
   
 });

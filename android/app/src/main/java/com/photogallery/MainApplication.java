@@ -3,6 +3,7 @@ package com.photogallery;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
+import io.realm.react.RealmReactPackage;
 import com.rnfs.RNFSPackage;
 import com.swmansion.gesturehandler.react.RNGestureHandlerPackage;
 import org.reactnative.camera.RNCameraPackage;
@@ -25,10 +26,11 @@ public class MainApplication extends Application implements ReactApplication {
     @Override
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
-          new MainReactPackage(),
-          new RNFSPackage(),
-          new RNGestureHandlerPackage(),
-          new RNCameraPackage()
+        new MainReactPackage(),
+        new RealmReactPackage(),
+        new RNFSPackage(),
+        new RNGestureHandlerPackage(),
+        new RNCameraPackage()
       );
     }
 

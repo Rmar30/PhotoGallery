@@ -9,11 +9,14 @@
   "dependencies": {
     "moment": "^2.24.0",
     "react": "16.6.3",
-    "react-native": "0.58.4",
+    "react-native": "^0.58.6",
     "react-native-camera": "^1.10.2",
     "react-native-fs": "^2.13.3",
     "react-native-gesture-handler": "^1.0.15",
-    "react-navigation": "^3.2.3"
+    "react-native-image-grid": "^1.0.0",
+    "react-navigation": "^3.2.3",
+    "realm": "^2.24.0",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "babel-core": "7.0.0-bridge.0",
