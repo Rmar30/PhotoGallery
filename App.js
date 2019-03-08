@@ -279,13 +279,6 @@ class ImageView extends React.Component {
 
   }
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      text: 'Useless Multiline Placeholder',
-    };
-  }
-
   static navigationOptions = {
     title: 'Image View',
   };
@@ -301,7 +294,8 @@ class ImageView extends React.Component {
     const photoLocation = navigation.getParam('photoLocation', 'Default Photo Location');
     const photoComment = navigation.getParam('photoComment', '');
 
-    console.log(photoDate);
+    console.log("VIEW COMMENT" + photoComment);
+
 
 
     return (
@@ -311,11 +305,16 @@ class ImageView extends React.Component {
         <View style={styles.singleImageButtonControl}>
           <Button
             title="EDIT"
-           
-            // onPress={() => {
-            //   /* 1. Navigate to the Camera route */
-            //   this.props.navigation.navigate('Camera');
-            // }}
+            onPress={() => {
+              /* 1. Navigate to the Edit Image route */
+              this.props.navigation.navigate('EditImage', {
+                photoID: photoID,
+                photoName: photoName,
+                photoPath: photoPath,
+                photoLocation: photoLocation,
+                photoComment: photoComment,
+              });
+            }}
           />
         </View>
         <View style={styles.singleImageButtonControl}>
@@ -370,7 +369,6 @@ class ImageView extends React.Component {
         <View style = {styles.fieldDisplay}>
           <Text>COMMENTS:</Text>
           <View style={{
-            backgroundColor: this.state.text,
             borderColor: '#000000',
             marginTop: 10,
             borderWidth: 1 }}
@@ -385,8 +383,7 @@ class ImageView extends React.Component {
                   color : "gray"
                 }
               }
-              onChangeText={(text) => this.setState({text})}
-              value= "TEST"
+              value = {photoComment}
             />
           </View>
         </View>
@@ -419,6 +416,145 @@ class ImageMapView extends React.Component {
   }
 }
 
+class EditImage extends React.Component {
+  
+  static navigationOptions = {
+    title: 'Edit Image',
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      name:'',
+      location:'',
+      comment:'',
+    };
+  }
+
+  componentDidMount() 
+  {
+    const { navigation } = this.props;
+    const photoName = navigation.getParam('photoName', '');
+    const photoLocation = navigation.getParam('photoLocation', 'Default Photo Location');
+    const photoComment = navigation.getParam('photoComment', '');
+    this.setState({
+      name: photoName,
+      location: photoLocation,
+      comment: photoComment
+    });
+  }
+
+
+  render() {
+
+    const { navigation } = this.props;
+    const photoID = navigation.getParam('photoID', '');
+    const photoPath = navigation.getParam('photoPath', '');
+    const photoName = navigation.getParam('photoName', '');
+    const photoLocation = navigation.getParam('photoLocation', 'Default Photo Location');
+    const photoComment = navigation.getParam('photoComment', '');
+
+    console.log("EDIT" + photoComment);
+
+    return (
+    <View>
+      {/* <View style={styles.singleImageContainer}>
+        <Image
+          style={styles.singleImage}
+          source={{ uri: photoPath }}
+        />
+      </View> */}
+      <View style={styles.singleImageContent}>
+        <View style = {styles.fieldDisplay}>
+          <Text>NAME:</Text>
+          <View style={{
+            borderColor: '#000000',
+            marginTop: 10,
+            borderWidth: 1 }}
+          >
+          <TextInput
+            editable = {true}
+            multiline = {true}
+            numberOfLines = {2}
+            style = {
+              {
+                textAlignVertical: "top",
+                color : "gray"
+              }
+            }
+            onChangeText={(name) => this.setState({name})}
+            value = {this.state.name}
+          />
+          </View>
+          <View style = {styles.fieldDisplay}>
+            <Text>LOCATION:</Text>
+            <View style={{
+              borderColor: '#000000',
+              marginTop: 10,
+              borderWidth: 1 }}
+            >
+              <TextInput
+                editable = {true}
+                multiline = {true}
+                numberOfLines = {2}
+                style = {
+                  {
+                    textAlignVertical: "top",
+                    color : "gray"
+                  }
+                }
+                onChangeText={(location) => this.setState({location})}
+                value = {this.state.location}
+              />
+            </View>
+          </View>
+          <View style = {styles.fieldDisplay}>
+            <Text>COMMENTS:</Text>
+            <View style={{
+              borderColor: '#000000',
+              marginTop: 10,
+              borderWidth: 1 }}
+            >
+              <TextInput
+                editable = {true}
+                multiline = {true}
+                numberOfLines = {4}
+                style = {
+                  {
+                    textAlignVertical: "top",
+                    color : "gray"
+                  }
+                }
+                onChangeText={(comment) => this.setState({comment})}
+                value = {this.state.comment}
+              />
+            </View>
+          </View>
+          <Button
+            title="Save"
+            style = {styles.fieldDisplay}
+            onPress={() => {
+              /* 1. Navigate to the Camera route */
+              realm.write(() => {
+                // Update book with new price keyed off the id
+                realm.create('Photo', {
+                  id: photoID,
+                  name: this.state.name,
+                  location: this.state.location,
+                  comment: this.state.comment,
+                }, true);
+              });
+
+              this.props.navigation.navigate('Home');
+            }}
+          />
+        </View>
+      </View>
+    </View>
+    )
+  }
+}
+
 // DEFINING STACK
 const RootStack = createStackNavigator(
   {
@@ -426,6 +562,7 @@ const RootStack = createStackNavigator(
     Camera: CameraScreen,
     ImageView: ImageView,
     ImageMapView: ImageMapView,
+    EditImage: EditImage,
   },
   {
     initialRouteName: 'Home',
@@ -496,7 +633,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap', 
     alignItems: 'flex-start',
     flexDirection:'row',
-    marginHorizontal: 20,
+    marginHorizontal: 35,
     marginTop: 20,
 
   },
