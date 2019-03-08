@@ -298,7 +298,7 @@ class ImageView extends React.Component {
     const photoPath = navigation.getParam('photoPath', '');
     const photoName = navigation.getParam('photoName', '');
     const photoDate = navigation.getParam('photoDate', '');
-    const photoLocation = navigation.getParam('photoLocation', '');
+    const photoLocation = navigation.getParam('photoLocation', 'Default Photo Location');
     const photoComment = navigation.getParam('photoComment', '');
 
     console.log(photoDate);
@@ -356,7 +356,16 @@ class ImageView extends React.Component {
 
       <View style={styles.singleImageContent}>
         <Text style = {styles.fieldDisplay}>DATE: {photoDate.toLocaleDateString()}</Text>
-        <Text style = {styles.fieldDisplay}>LOCATION: {photoLocation}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            /* 1. Navigate to the Camera route */
+            this.props.navigation.navigate('ImageMapView',{
+              photoLocation: photoLocation,
+            });
+          }}
+        >
+          <Text style = {styles.fieldDisplay}>LOCATION: {photoLocation}</Text>
+        </TouchableOpacity>
         
         <View style = {styles.fieldDisplay}>
           <Text>COMMENTS:</Text>
@@ -388,12 +397,35 @@ class ImageView extends React.Component {
   }
 }
 
+class ImageMapView extends React.Component {
+  
+  static navigationOptions = {
+    title: 'Image Map View',
+  };
+
+
+  render() {
+
+    const { navigation } = this.props;
+    const photoLocation = navigation.getParam('photoLocation', 'Default Photo Location');
+
+
+
+    return (
+    <View>
+      <Text>Hello this is ImageMap View</Text>
+    </View>
+    )
+  }
+}
+
 // DEFINING STACK
 const RootStack = createStackNavigator(
   {
     Home: HomeScreen,
     Camera: CameraScreen,
     ImageView: ImageView,
+    ImageMapView: ImageMapView,
   },
   {
     initialRouteName: 'Home',
@@ -492,6 +524,11 @@ const styles = StyleSheet.create({
   },
   fieldDisplay: {
     marginVertical: 8,
-  }
-  
+  },
+  locationBar: {
+    flexDirection:'row',
+    flexWrap: 'wrap', 
+    alignItems: 'flex-start',
+  },
+
 });
